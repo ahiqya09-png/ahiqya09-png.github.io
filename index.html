@@ -529,23 +529,24 @@ body.tpill-on{padding-bottom:calc(var(--nav) + var(--navgap) + 96px + env(safe-a
 :where(html[data-anim]) .pg.on{animation:none}           /* sustituye el "fi" de styles.css */
 
 /* clases que pone anim.js (siempre temporales) */
-.a-in{animation:a-fi .3s var(--a-out) .06s backwards;will-change:opacity}
-.a-st{animation:a-fi .34s var(--a-out) calc(var(--i,0)*32ms + 60ms) backwards,a-rise .6s var(--a-soft) calc(var(--i,0)*32ms + 60ms) backwards;will-change:transform,opacity}
-.a-out{animation:a-fo .11s linear both;will-change:opacity}
+.a-in{animation:a-fi .22s var(--a-out) .04s backwards}
+.a-st{animation:a-fi .22s var(--a-out) calc(var(--i,0)*22ms + 40ms) backwards,a-rise .46s var(--a-soft) calc(var(--i,0)*22ms + 40ms) backwards}
+.a-out{animation:a-fo .11s linear both}
 @keyframes a-fi{from{opacity:0}}
 @keyframes a-fo{to{opacity:0}}
 @keyframes a-rise{from{translate:0 16px}}
 
-html[data-anim=full] .pg.on.a-pin-fwd{animation:a-pin-f .52s var(--a-soft) backwards;will-change:translate}
-html[data-anim=full] .pg.on.a-pin-back{animation:a-pin-b .52s var(--a-soft) backwards;will-change:translate}
-@keyframes a-pin-f{from{translate:22% 0}}
-@keyframes a-pin-b{from{translate:-14% 0}}
+html[data-anim=full] .pg.on.a-pin-fwd{animation:a-pin-f .44s var(--a-soft) backwards}
+html[data-anim=full] .pg.on.a-pin-back{animation:a-pin-b .44s var(--a-soft) backwards}
+@keyframes a-pin-f{from{translate:12% 0}}
+@keyframes a-pin-b{from{translate:-8% 0}}
 /* la página que sale se queda "congelada" encima y se aparta */
-.pg.a-leave{display:block;position:fixed;left:0;right:0;top:var(--a-top,0px);margin:0 auto;z-index:2;pointer-events:none;will-change:translate}
-.pg.a-leave-fwd{animation:a-lv-f .34s cubic-bezier(.3,.7,.3,1) both}
-.pg.a-leave-back{animation:a-lv-b .32s cubic-bezier(.3,.7,.3,1) both}
-@keyframes a-lv-f{to{translate:-14% 0}}
-@keyframes a-lv-b{to{translate:22% 0}}
+.pg.a-leave{display:block;position:fixed;left:0;right:0;top:var(--a-top,0px);margin:0 auto;z-index:2;pointer-events:none;animation:a-fo .11s linear both}
+.pg.a-leave *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;animation:none!important}   /* la que sale no gasta GPU en desenfoques */
+.pg.a-leave-fwd{animation:a-lv-f .26s cubic-bezier(.3,.7,.3,1) both,a-fo .11s linear both}
+.pg.a-leave-back{animation:a-lv-b .26s cubic-bezier(.3,.7,.3,1) both,a-fo .11s linear both}
+@keyframes a-lv-f{to{translate:-8% 0}}
+@keyframes a-lv-b{to{translate:12% 0}}
 html.a-trans{overflow-x:hidden}                          /* el desplazamiento lateral no crea scroll horizontal */
 
 /* reducidas: solo un fundido corto */
@@ -572,8 +573,8 @@ html[data-anim=full] .grp .row:active{transform:none;scale:1}   /* filas agrupad
 /* =====================================================================
    5 · BARRA INFERIOR: la lente se estira al moverse y se asienta con rebote
    ===================================================================== */
-html[data-anim=full] nav.bar.ready .lens{transition:transform .62s var(--a-snap),opacity .3s}
-html[data-anim=full] nav.bar .lens.a-st2{animation:a-stretch .62s linear;will-change:scale}
+html[data-anim=full] nav.bar.ready .lens{transition:transform .5s var(--a-soft),opacity .3s}
+html[data-anim=full] nav.bar .lens.a-st2{animation:a-stretch .5s linear}
 @keyframes a-stretch{
 0%{scale:1 1;animation-timing-function:cubic-bezier(.2,.7,.3,1)}
 26%{scale:calc(1 + var(--st,.18)) calc(1 - var(--st,.18)*.5);animation-timing-function:var(--a-snap)}
@@ -1179,7 +1180,8 @@ function kick(el,cls,ms){if(!el)return;el.classList.remove(cls);void el.offsetWi
    1 + 3 · TRANSICIÓN DE PÁGINAS + ENTRADA ESCALONADA
    ===================================================================== */
 var TABS={index:1,hoy:1,reloj:1,exindex:1,registro:1};
-var stack=[],prevId=null,lastY=0,tagged=[],cleanTimer=0;
+var stack=[],prevId=null,lastY=0,tagged=[],cleanTimer=0,leaveTimer=0;
+function dropLeave(){qa('.pg.a-leave').forEach(function(p){p.classList.remove('a-leave','a-leave-fwd','a-leave-back');p.style.removeProperty('--a-top');p.removeAttribute('aria-hidden')})}
 // piezas con backdrop-filter: opacity en un contenedor las "apagaría", así que se anima cada pieza
 var GLASS='.btn,.lvl,.callout,.step,.rir,.feel,.vars,.evita,.stats>div,.tiles>div,.hero2,.logc,.tcard,.setlist,.grp,.dtop,.wk,.seg,.btn2,.chipb,.prow,.rb,.rest,.search,.np,figcaption,.legend span,.cta2,.topbar .back,.topbar span';
 var HEADISH='.topbar *,header,h1,h2,.kick,p,.np,.letter';
@@ -1208,7 +1210,7 @@ function transition(oldPg,newPg,dir){
   if(full&&oldPg&&oldPg!==newPg&&dir!=='init'){
     oldPg.style.setProperty('--a-top',(-lastY)+'px');oldPg.setAttribute('aria-hidden','true');
     oldPg.classList.add('a-leave');if(dir==='fwd'||dir==='back')oldPg.classList.add('a-leave-'+dir);
-    var o=[];collect(oldPg,o,vh);o.forEach(function(el){tag(el,'a-out')});
+    clearTimeout(leaveTimer);leaveTimer=setTimeout(dropLeave,320);
   }
   if(full&&(dir==='fwd'||dir==='back')){root.classList.add('a-trans');newPg.classList.add('a-pin-'+dir)}
   // piezas de la página nueva
@@ -1223,11 +1225,11 @@ function transition(oldPg,newPg,dir){
       cand.push(el)});
     var n=0;cand.forEach(function(el){
       var r=el.getBoundingClientRect();
-      if(n<8&&r.top<vh-30&&r.height>0){tag(el,'a-st',n);n++}else fade.push(el)});
+      if(n<6&&r.top<vh-30&&r.height>0){tag(el,'a-st',n);n++}else fade.push(el)});
     fade.forEach(function(el){if(!el.classList.contains('a-st'))tag(el,'a-in')})}
   newPg.classList.add('a-live');                         // anillos y barras de la página
   countUp(newPg);
-  cleanTimer=setTimeout(cleanup,1050)}
+  cleanTimer=setTimeout(cleanup,900)}
 
 function onRoute(first){
   var id=curId(),newPg=document.getElementById(id),oldPg=prevId?document.getElementById(prevId):null,dir;
@@ -1300,8 +1302,8 @@ if(lens&&window.MutationObserver){
     var m=/translateX\((-?[\d.]+)px\)/.exec(lens.style.transform||'');if(!m)return;
     var x=+m[1];
     if(lastX!==null&&Math.abs(x-lastX)>3&&mode==='full'&&navEl.classList.contains('ready')&&!navEl.classList.contains('hide')){
-      navEl.style.setProperty('--st',clamp(.1+Math.abs(x-lastX)/Math.max(1,navEl.offsetWidth)*.45,.1,.3).toFixed(3));
-      kick(lens,'a-st2',700)}
+      navEl.style.setProperty('--st',clamp(.05+Math.abs(x-lastX)/Math.max(1,navEl.offsetWidth)*.25,.05,.13).toFixed(3));
+      kick(lens,'a-st2',560)}
     lastX=x}).observe(lens,{attributes:true,attributeFilter:['style']})}
 
 /* =====================================================================
@@ -1338,7 +1340,7 @@ function syncSeg(seg,animate){
   if(key!=null)segMem[key]=idx}
 function syncSegs(animate){qa('.pg.on .seg').forEach(function(s){try{syncSeg(s,animate)}catch(e){}})}
 if(window.MutationObserver){
-  new MutationObserver(function(){if(segRaf)return;segRaf=raf(function(){segRaf=0;syncSegs()})})
+  new MutationObserver(function(ms){if(segRaf)return;var rel=false;for(var i=0;i<ms.length&&!rel;i++){var m=ms[i],t=m.target;if(m.type==='attributes'){rel=!!(t.closest&&t.closest('.seg'))||(t.classList&&t.classList.contains('pg'))}else{rel=[].some.call(m.addedNodes,function(n){return n.nodeType===1&&(n.matches('.seg')||n.querySelector('.seg'))})||!!(t.closest&&t.closest('.seg'))}}if(!rel)return;segRaf=raf(function(){segRaf=0;syncSegs()})})
     .observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']})}
 
 /* =====================================================================
@@ -1355,6 +1357,9 @@ function clockTick(){
 if(window.MutationObserver){
   if(cpp)new MutationObserver(clockState).observe(cpp,{attributes:true,attributeFilter:['class']});
   if(ctm)new MutationObserver(clockTick).observe(ctm,{childList:true,characterData:true,subtree:true})}
+
+/* ---------- imágenes sin bloquear al mostrarse una página ---------- */
+qa('.pg img').forEach(function(i){i.decoding='async'});
 
 /* ---------- arranque ---------- */
 applyMode();

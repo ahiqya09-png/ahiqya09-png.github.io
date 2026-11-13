@@ -1,1 +1,39 @@
-{"name": "Rutina en casa", "short_name": "Rutina", "description": "Programa de fuerza en casa", "lang": "es", "start_url": "./index.html", "scope": "./", "display": "standalone", "orientation": "portrait", "background_color": "#0A1020", "theme_color": "#0A1020", "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}]}
+{
+ "name": "Rutina en casa",
+ "short_name": "Rutina",
+ "description": "Programa de fuerza en casa",
+ "lang": "es",
+ "start_url": "./index.html",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#070B16",
+ "theme_color": "#070B16",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-maskable-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ],
+ "id": "./index.html"
+}

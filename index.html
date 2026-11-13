@@ -495,6 +495,146 @@ body.tpill-on{padding-bottom:calc(var(--nav) + var(--navgap) + 96px + env(safe-a
 .tpill,.toast,.topbar .back,.topbar span{background:var(--press),linear-gradient(135deg,var(--tint),transparent 62%),var(--glass),rgba(10,15,30,.5)}
 .topbar .back,.topbar span{background:linear-gradient(rgba(14,20,38,.93),rgba(14,20,38,.93)),var(--glass)!important}
 .wk{height:124px}
+
+/* =====================================================================
+   ANIM · paquete de animaciones estilo iOS  (se añade al final de styles.css)
+   - Solo se animan transform (también las propiedades individuales translate/scale) y opacity.
+     Excepción: stroke-dashoffset en anillos y en la ✓ (es dibujo SVG, lo pediste).
+   - Se usan translate/scale (propiedades individuales) para NO pisar los transform
+     que ya existen (barra inferior, aviso y cápsula del temporizador usan translateX(-50%)).
+   - html[data-anim=full]  → animaciones completas
+     html[data-anim=lite]  → reducidas: solo fundidos cortos (la pone anim.js; también si el
+                             sistema pide reducir movimiento)
+   ===================================================================== */
+
+/* ---------- resortes (calculados con la ecuación de un resorte amortiguado) ---------- */
+:root{
+--a-out:cubic-bezier(.2,.8,.2,1);
+--a-in:cubic-bezier(.4,0,1,1);
+--a-snap:cubic-bezier(.34,1.45,.64,1);   /* rebote corto  ≈ 8 %  */
+--a-soft:cubic-bezier(.22,1.08,.36,1);   /* casi sin rebote ≈ 1 % */
+--a-bounce:cubic-bezier(.3,1.85,.5,1);   /* rebote marcado ≈ 20 % */
+}
+@supports (transition-timing-function:linear(0,1)){:root{
+--a-snap:linear(0,0.034,0.121,0.24,0.373,0.508,0.636,0.75,0.847,0.926,0.986,1.03,1.059,1.076,1.083,1.083,1.077,1.068,1.057,1.046,1.035,1.025,1.016,1.009,1.003,0.999,0.996,0.994,0.993,0.993,0.993,0.994,0.995,0.996,0.997,0.998,1);
+--a-soft:linear(0,0.019,0.067,0.134,0.212,0.296,0.38,0.461,0.538,0.609,0.673,0.73,0.78,0.823,0.86,0.891,0.917,0.938,0.955,0.969,0.98,0.989,0.995,1,1.003,1.005,1.007,1.007,1.008,1.008,1.007,1.007,1.006,1.006,1.005,1.004,1);
+--a-bounce:linear(0,0.065,0.225,0.434,0.651,0.847,1.005,1.117,1.181,1.205,1.196,1.166,1.125,1.08,1.039,1.004,0.98,0.965,0.958,0.959,0.964,0.973,0.982,0.991,0.998,1.003,1.007,1.008,1.009,1.008,1.006,1.004,1.002,1.001,0.999,0.999,1);
+}}
+
+/* =====================================================================
+   1 · TRANSICIÓN ENTRE PÁGINAS (push de UINavigationController)
+   La página se desliza con transform; el fundido se aplica a cada pieza (clases a-in / a-st / a-out)
+   y NO a toda la página, porque opacity en un contenedor apaga el backdrop-filter de los paneles hijos.
+   ===================================================================== */
+:where(html[data-anim]) .pg.on{animation:none}           /* sustituye el "fi" de styles.css */
+
+/* clases que pone anim.js (siempre temporales) */
+.a-in{animation:a-fi .3s var(--a-out) .06s backwards;will-change:opacity}
+.a-st{animation:a-fi .34s var(--a-out) calc(var(--i,0)*32ms + 60ms) backwards,a-rise .6s var(--a-soft) calc(var(--i,0)*32ms + 60ms) backwards;will-change:transform,opacity}
+.a-out{animation:a-fo .11s linear both;will-change:opacity}
+@keyframes a-fi{from{opacity:0}}
+@keyframes a-fo{to{opacity:0}}
+@keyframes a-rise{from{translate:0 16px}}
+
+html[data-anim=full] .pg.on.a-pin-fwd{animation:a-pin-f .52s var(--a-soft) backwards;will-change:translate}
+html[data-anim=full] .pg.on.a-pin-back{animation:a-pin-b .52s var(--a-soft) backwards;will-change:translate}
+@keyframes a-pin-f{from{translate:22% 0}}
+@keyframes a-pin-b{from{translate:-14% 0}}
+/* la página que sale se queda "congelada" encima y se aparta */
+.pg.a-leave{display:block;position:fixed;left:0;right:0;top:var(--a-top,0px);margin:0 auto;z-index:2;pointer-events:none;will-change:translate}
+.pg.a-leave-fwd{animation:a-lv-f .34s cubic-bezier(.3,.7,.3,1) both}
+.pg.a-leave-back{animation:a-lv-b .32s cubic-bezier(.3,.7,.3,1) both}
+@keyframes a-lv-f{to{translate:-14% 0}}
+@keyframes a-lv-b{to{translate:22% 0}}
+html.a-trans{overflow-x:hidden}                          /* el desplazamiento lateral no crea scroll horizontal */
+
+/* reducidas: solo un fundido corto */
+html[data-anim=lite] .a-in{animation-duration:.16s}
+html[data-anim=lite] .aur i{animation:none}               /* manchas del fondo quietas */
+
+/* =====================================================================
+   2 · TÍTULO GRANDE QUE SE ENCOGE (anim.js escribe opacity/scale en el scroll)
+   ===================================================================== */
+html[data-anim=full] .pg.lt h1{transform-origin:0 60%}
+html[data-anim=full] .pg.lt .topbar span{opacity:0;translate:0 6px;scale:.94;transform-origin:0 50%;pointer-events:none}
+
+/* =====================================================================
+   4 · TOQUE: escala ≈0.97 y regreso con resorte (el destello --pa de styles.css se conserva)
+   ===================================================================== */
+html[data-anim=full] :is(.btn,.row:not(.static),.prow,.chipb,.btn2,.rb,.rest,.cta,.cta2,.np,.chk,.stp button,.back,.tpill,.xl){
+transition:scale .55s var(--a-snap),transform .4s var(--spring),--pa .45s ease,box-shadow .3s var(--ease),background-color .3s var(--ease)}
+html[data-anim=full] :is(.btn,.row:not(.static),.prow,.chipb,.btn2,.rb,.rest,.cta,.cta2,.np,.chk,.stp button,.back,.tpill,.xl):active{
+transform:none;scale:.97;transition:scale .12s var(--a-out),transform .4s var(--spring),--pa .45s ease,box-shadow .3s var(--ease),background-color .3s var(--ease)}
+html[data-anim=full] :is(.chk,.stp button,.rb,.np,.back):active{scale:.9}
+html[data-anim=full] .rb.big:active{scale:.94}
+html[data-anim=full] .grp .row:active{transform:none;scale:1}   /* filas agrupadas: solo resaltan, como en Ajustes */
+
+/* =====================================================================
+   5 · BARRA INFERIOR: la lente se estira al moverse y se asienta con rebote
+   ===================================================================== */
+html[data-anim=full] nav.bar.ready .lens{transition:transform .62s var(--a-snap),opacity .3s}
+html[data-anim=full] nav.bar .lens.a-st2{animation:a-stretch .62s linear;will-change:scale}
+@keyframes a-stretch{
+0%{scale:1 1;animation-timing-function:cubic-bezier(.2,.7,.3,1)}
+26%{scale:calc(1 + var(--st,.18)) calc(1 - var(--st,.18)*.5);animation-timing-function:var(--a-snap)}
+100%{scale:1 1}}
+html[data-anim=lite] nav.bar.ready .lens{transition:opacity .2s}
+
+/* =====================================================================
+   6 · INTERRUPTORES (.sw) Y SELECTORES (.seg)
+   ===================================================================== */
+html[data-anim=full] .sw i::after{transition:transform .55s var(--a-snap),scale .35s var(--a-snap),translate .35s var(--a-snap)}
+html[data-anim=full] .sw:active input+i::after{scale:1.32 .94;translate:4.5px 0}          /* se estira hacia donde va */
+html[data-anim=full] .sw:active input:checked+i::after{translate:-4.5px 0}
+html[data-anim=lite] .sw i::after{transition:transform .18s ease-out}
+/* perilla deslizante del .seg (la crea anim.js; sin ella queda el diseño original) */
+.seg .a-thumb{position:absolute;left:0;top:0;z-index:0;border-radius:99px;pointer-events:none;transform-origin:0 0;
+background:linear-gradient(165deg,rgba(255,255,255,.3),rgba(255,255,255,.07)),color-mix(in srgb,var(--tc,var(--c)) 58%,transparent);
+box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -1px 0 rgba(255,255,255,.1),0 8px 18px -8px color-mix(in srgb,var(--tc,var(--c)) 55%,transparent);
+transition:translate .5s var(--a-snap),scale .5s var(--a-snap)}
+.seg .a-thumb.nt{transition:none}
+.seg.a-sw button{position:relative;z-index:1}
+.seg.a-sw button.on{background:var(--press);box-shadow:none}
+html[data-anim=lite] .seg .a-thumb{transition:none}
+
+/* =====================================================================
+   7 · ANILLOS, BARRAS Y NÚMEROS (los números los cuenta anim.js)
+   ===================================================================== */
+html[data-anim=full] .pg.a-live .ringc .prg{animation:a-ring .78s var(--a-out) .1s backwards}
+@keyframes a-ring{from{stroke-dashoffset:252px}}
+html[data-anim=full] .pg.a-live .wk i{animation:a-bar .6s var(--a-soft) calc(.1s + var(--n,0)*24ms) backwards}
+@keyframes a-bar{from{scale:1 0}}
+.wk i{transform-origin:50% 100%}
+.stats b,.dstats b,.ringc b{font-variant-numeric:tabular-nums}
+
+/* =====================================================================
+   9 · DETALLES
+   ===================================================================== */
+/* ✓ de cada serie: se dibuja con stroke-dashoffset y la perilla da un pop */
+html[data-anim=full] .chk.pop{animation:a-pop .55s var(--a-bounce)}
+@keyframes a-pop{0%{scale:.62}100%{scale:1}}
+html[data-anim=full] .chk.pop[aria-pressed=true] svg{animation:a-draw .42s var(--a-out) .07s backwards}
+@keyframes a-draw{from{stroke-dashoffset:26}to{stroke-dashoffset:0}}
+html[data-anim=lite] .chk.pop{animation:none}
+
+/* aviso: cápsula que baja desde arriba con resorte */
+html[data-anim] .toast{transform:translateX(-50%);transform-origin:50% 0}
+html[data-anim=full] .toast{translate:0 -140%;scale:.82;opacity:0;
+transition:translate .3s var(--a-in),scale .3s var(--a-in),opacity .2s linear,visibility 0s .3s}
+html[data-anim=full] .toast.on{translate:0 0;scale:1;opacity:1;
+transition:translate .65s var(--a-snap),scale .65s var(--a-snap),opacity .18s linear,visibility 0s}
+html[data-anim=lite] .toast{opacity:0;transition:opacity .2s linear,visibility 0s .2s}
+html[data-anim=lite] .toast.on{opacity:1;transition:opacity .2s linear,visibility 0s}
+
+/* cápsula del temporizador al aparecer */
+html[data-anim=full] .tpill:not([hidden]){animation:a-pill .6s var(--a-snap) backwards}
+@keyframes a-pill{from{translate:0 24px;scale:.88;opacity:0}}
+
+/* anillo del temporizador: respira mientras corre; pulso en los últimos 3 s */
+html[data-anim=full] .clock.a-run svg{animation:a-breathe 4s ease-in-out infinite;will-change:scale}
+@keyframes a-breathe{0%,100%{scale:1}50%{scale:1.022}}
+html[data-anim=full] .clock.a-pulse{animation:a-pulse .7s var(--a-bounce)}
+@keyframes a-pulse{0%{scale:1}28%{scale:1.045}100%{scale:1}}
 </style></head><body class="cover"><svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
 <filter id="lgf" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
 <feImage id="lgmap" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="m" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='r' x1='0' x2='1' y1='0' y2='0'%3E%3Cstop offset='0' stop-color='%23f00'/%3E%3Cstop offset='.3' stop-color='%23800'/%3E%3Cstop offset='.7' stop-color='%23800'/%3E%3Cstop offset='1' stop-color='%23000'/%3E%3C/linearGradient%3E%3ClinearGradient id='g' x1='0' x2='0' y1='0' y2='1'%3E%3Cstop offset='0' stop-color='%230f0'/%3E%3Cstop offset='.3' stop-color='%23080'/%3E%3Cstop offset='.7' stop-color='%23080'/%3E%3Cstop offset='1' stop-color='%23000'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23r)'/%3E%3Crect width='100' height='100' fill='url(%23g)' style='mix-blend-mode:screen'/%3E%3C/svg%3E"/>
@@ -657,6 +797,9 @@ body.tpill-on{padding-bottom:calc(var(--nav) + var(--navgap) + 96px + env(safe-a
 <label class='sw'><span class='tx'><b>Vibración</b><span class='s'>Al marcar series y al cambiar de fase</span></span><input type='checkbox' data-pref='vib'><i></i></label>
 <label class='sw'><span class='tx'><b>Descanso automático</b><span class='s'>Inicia el temporizador al marcar una serie</span></span><input type='checkbox' data-pref='auto'><i></i></label>
 </div>
+<h2 style='--c:#14B8A6'>Animaciones</h2>
+<div class='seg two' id='animseg' role='radiogroup' aria-label='Animaciones'><button type='button' data-v='full'>Completas<small>Con resorte</small></button><button type='button' data-v='lite'>Reducidas<small>Solo fundidos</small></button></div>
+<p class='muted small' id='animhint'></p>
 <div class='callout' style='--c:#14B8A6' id='plansum'><div class='ct'><span class='ci'>i</span>Tu plan</div><p id='plansumtx'></p></div>
 <a class='btn' href='#hoy' style='--c:#14B8A6'><span class='tx'><b>Ver qué toca hoy</b><span class='s'>Tu sesión según este plan</span></span><i class='chev'></i></a></section>
 
@@ -995,5 +1138,227 @@ document.addEventListener('pointerdown',function(e){var el=e.target.closest(PS);
 var dp;window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;var b=$('#install');if(b)b.classList.add('on')});
 var ib=$('#install');if(ib)ib.onclick=function(e){e.preventDefault();if(dp){dp.prompt();dp=null;ib.classList.remove('on')}};
 if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0)navigator.serviceWorker.register('sw.js').catch(function(){});
+})();
+
+;(function(){
+'use strict';
+/* =====================================================================
+   ANIM · paquete de animaciones estilo iOS (fuera del IIFE de app.js: solo usa DOM y eventos)
+   Llave de localStorage propia: rutina_anim_v1  →  'full' | 'lite'
+   ===================================================================== */
+var K_ANIM='rutina_anim_v1';
+var root=document.documentElement;
+function q(s,r){return (r||document).querySelector(s)}
+function qa(s,r){return [].slice.call((r||document).querySelectorAll(s))}
+function rd(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function wr(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function clamp(v,a,b){return v<a?a:v>b?b:v}
+var raf=window.requestAnimationFrame.bind(window);
+
+/* ---------- modo: completas / reducidas (+ prefers-reduced-motion) ---------- */
+var mq=window.matchMedia?window.matchMedia('(prefers-reduced-motion:reduce)'):null;
+var stored=rd(K_ANIM)==='lite'?'lite':'full';
+var mode='full';
+function effective(){return (stored==='lite'||(mq&&mq.matches))?'lite':'full'}
+function applyMode(){
+  mode=effective();root.setAttribute('data-anim',mode);
+  qa('#animseg button').forEach(function(b){var on=b.getAttribute('data-v')===stored;b.classList.toggle('on',on);b.setAttribute('role','radio');b.setAttribute('aria-checked',on?'true':'false')});
+  var h=q('#animhint');if(h)h.textContent=(mq&&mq.matches)?'Tu dispositivo pide reducir el movimiento: se usan las animaciones reducidas.':stored==='lite'?'Solo fundidos cortos, sin movimientos grandes.':'Transiciones con resorte, como en iOS.';
+  if(mode==='lite')cleanup();
+  qa('.pg').forEach(function(p){if(mode==='lite')resetTitle(p)});
+  var cur=q('.pg.on');if(cur&&mode==='full')prepTitle(cur);
+  clockState();syncSegs(false)}
+if(mq){var chg=function(){applyMode()};if(mq.addEventListener)mq.addEventListener('change',chg);else if(mq.addListener)mq.addListener(chg)}
+document.addEventListener('click',function(e){var b=e.target.closest('#animseg button');if(!b)return;
+  stored=b.getAttribute('data-v')==='lite'?'lite':'full';wr(K_ANIM,stored);applyMode()});
+
+/* ---------- utilidades ---------- */
+function kick(el,cls,ms){if(!el)return;el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls);clearTimeout(el._k);el._k=setTimeout(function(){el.classList.remove(cls)},ms)}
+
+/* =====================================================================
+   1 + 3 · TRANSICIÓN DE PÁGINAS + ENTRADA ESCALONADA
+   ===================================================================== */
+var TABS={index:1,hoy:1,reloj:1,exindex:1,registro:1};
+var stack=[],prevId=null,lastY=0,tagged=[],cleanTimer=0;
+// piezas con backdrop-filter: opacity en un contenedor las "apagaría", así que se anima cada pieza
+var GLASS='.btn,.lvl,.callout,.step,.rir,.feel,.vars,.evita,.stats>div,.tiles>div,.hero2,.logc,.tcard,.setlist,.grp,.dtop,.wk,.seg,.btn2,.chipb,.prow,.rb,.rest,.search,.np,figcaption,.legend span,.cta2,.topbar .back,.topbar span';
+var HEADISH='.topbar *,header,h1,h2,.kick,p,.np,.letter';
+function curId(){var id=(location.hash||'#cover').slice(1);return document.getElementById(id)&&document.getElementById(id).classList.contains('pg')?id:'cover'}
+function collect(root_,out,vh){
+  [].forEach.call(root_.children,function(c){
+    if(c.hidden||c.tagName==='SCRIPT'||c.tagName==='STYLE'||c.classList.contains('a-thumb'))return;
+    var r=c.getBoundingClientRect();if(!r.height&&!r.width)return;
+    if(r.top>vh+40)return;                                   // bajo el pliegue: no se anima
+    var glass=c.matches(GLASS);
+    if(glass)out.push(c);
+    else if(c.querySelector(GLASS)||c.classList.contains('clock')||r.height>vh*1.6)collect(c,out,vh);
+    else out.push(c)})}
+function tag(el,cls,i){el.classList.add(cls);if(i!=null)el.style.setProperty('--i',i);tagged.push(el)}
+function cleanup(){
+  clearTimeout(cleanTimer);
+  tagged.forEach(function(el){el.classList.remove('a-in','a-st','a-out');el.style.removeProperty('--i')});tagged=[];
+  qa('.pg.a-leave').forEach(function(p){p.classList.remove('a-leave','a-leave-fwd','a-leave-back');p.style.removeProperty('--a-top');p.removeAttribute('aria-hidden')});
+  qa('.pg.a-pin-fwd,.pg.a-pin-back,.pg.a-live').forEach(function(p){p.classList.remove('a-pin-fwd','a-pin-back','a-live')});
+  root.classList.remove('a-trans')}
+
+function transition(oldPg,newPg,dir){
+  cleanup();
+  var vh=window.innerHeight,full=mode==='full';
+  // página que sale (solo en completas y en push/pop/cambio de pestaña)
+  if(full&&oldPg&&oldPg!==newPg&&dir!=='init'){
+    oldPg.style.setProperty('--a-top',(-lastY)+'px');oldPg.setAttribute('aria-hidden','true');
+    oldPg.classList.add('a-leave');if(dir==='fwd'||dir==='back')oldPg.classList.add('a-leave-'+dir);
+    var o=[];collect(oldPg,o,vh);o.forEach(function(el){tag(el,'a-out')});
+  }
+  if(full&&(dir==='fwd'||dir==='back')){root.classList.add('a-trans');newPg.classList.add('a-pin-'+dir)}
+  // piezas de la página nueva
+  var t=[];collect(newPg,t,vh);
+  if(!full){t.forEach(function(el){tag(el,'a-in')})}
+  else{
+    var cand=[],fade=[];
+    t.forEach(function(el){
+      if(el.matches(HEADISH)||el.closest('.topbar,header')){
+        if(!(el.matches('.topbar span')&&newPg.classList.contains('lt')))fade.push(el);return}
+      if(el.matches('.grp,.setlist')){fade.push(el);qa(':scope>.row,:scope>.sw,:scope>.stpl',el).forEach(function(r){cand.push(r)});return}
+      cand.push(el)});
+    var n=0;cand.forEach(function(el){
+      var r=el.getBoundingClientRect();
+      if(n<8&&r.top<vh-30&&r.height>0){tag(el,'a-st',n);n++}else fade.push(el)});
+    fade.forEach(function(el){if(!el.classList.contains('a-st'))tag(el,'a-in')})}
+  newPg.classList.add('a-live');                         // anillos y barras de la página
+  countUp(newPg);
+  cleanTimer=setTimeout(cleanup,1050)}
+
+function onRoute(first){
+  var id=curId(),newPg=document.getElementById(id),oldPg=prevId?document.getElementById(prevId):null,dir;
+  if(first){stack=[id];dir='init'}
+  else{
+    if(id===prevId)return;
+    var n=stack.length;
+    if(n>1&&stack[n-2]===id){stack.pop();dir='back'}
+    else if(TABS[id]&&prevId!=='cover'){stack=[id];dir='tab'}
+    else{stack.push(id);if(stack.length>40)stack.shift();dir='fwd'}}
+  prevId=id;
+  prepTitle(newPg);syncSegs(false);
+  transition(oldPg,newPg,dir);
+  lastY=0;onScroll()}
+
+/* =====================================================================
+   2 · TÍTULO GRANDE → CÁPSULA
+   ===================================================================== */
+function prepTitle(pg){
+  if(mode!=='full'||!pg||pg.id==='cover')return;
+  var h=q('h1',pg),sp=q('.topbar span',pg);
+  if(!h||!sp){pg._lt=null;pg.classList.remove('lt');return}
+  var tb=q('.topbar',pg),safe=Math.max(0,(parseFloat(getComputedStyle(pg).paddingTop)||10)-10),tbBottom=(tb?tb.offsetHeight:46)+8+safe;
+  var d=clamp(h.offsetTop+h.offsetHeight-tbBottom-8,48,130);
+  pg._lt={h:h,sp:sp,d:d,p:-1};pg.classList.add('lt')}
+function resetTitle(pg){
+  if(!pg._lt&&!pg.classList.contains('lt'))return;
+  var L=pg._lt;pg.classList.remove('lt');pg._lt=null;
+  if(L){['opacity','scale','translate'].forEach(function(k){L.h.style[k]='';L.sp.style[k]=''})}}
+var ticking=false;
+function onScroll(){if(!ticking){ticking=true;raf(updTitle)}}
+function updTitle(){
+  ticking=false;var pg=q('.pg.on');if(!pg||!pg._lt||mode!=='full')return;
+  var L=pg._lt,y=window.scrollY,p=clamp(y/L.d,0,1);
+  var sig=y<0?'n'+Math.round(-y/4):Math.round(p*200);
+  if(L.sig===sig)return;L.sig=sig;
+  if(y<0){L.h.style.scale=String(1+Math.min(.1,-y/900));L.h.style.opacity='';L.sp.style.opacity='0';return}   // rebote al estirar
+  var o=clamp((p-.55)/.45,0,1);o=o*o*(3-2*o);
+  L.h.style.scale=String(1-.16*p);L.h.style.opacity=String(clamp(1-p*1.35,0,1));
+  L.sp.style.opacity=String(o);L.sp.style.translate='0 '+((1-o)*6).toFixed(2)+'px';L.sp.style.scale=String(.94+.06*o)}
+window.addEventListener('scroll',function(){lastY=Math.max(0,window.scrollY);onScroll()},{passive:true});
+window.addEventListener('resize',function(){var pg=q('.pg.on');if(pg&&mode==='full'){pg._lt&&(pg._lt=null);prepTitle(pg);onScroll()};syncSegs(false)},{passive:true});
+
+/* =====================================================================
+   7 · NÚMEROS QUE CUENTAN DE 0 AL VALOR (~700 ms)
+   ===================================================================== */
+var cuTok=0;
+function countUp(pg){
+  if(mode!=='full')return;
+  var items=[];qa('.stats>div>b,.dstats b,.ringc b',pg).forEach(function(b){
+    var t=b.textContent.trim(),m=/^(\d+)(%|\/\d+)?$/.exec(t);if(!m)return;
+    var v=+m[1];if(v>0)items.push({el:b,v:v,suf:m[2]||'',txt:b.textContent})});
+  if(!items.length)return;
+  var tok=++cuTok,t0=null,DUR=700,DELAY=110;
+  items.forEach(function(it){it.el.textContent='0'+it.suf});
+  function step(ts){
+    if(tok!==cuTok){items.forEach(function(it){if(it.el.isConnected&&it.el.textContent!==it.txt&&/^0/.test(it.el.textContent))it.el.textContent=it.txt});return}
+    if(t0===null)t0=ts;var k=clamp((ts-t0-DELAY)/DUR,0,1),e=1-Math.pow(1-k,3);
+    items.forEach(function(it){if(it.el.isConnected)it.el.textContent=Math.round(it.v*e)+it.suf});
+    if(k<1)raf(step);else items.forEach(function(it){if(it.el.isConnected)it.el.textContent=it.txt})}
+  raf(step);
+  qa('.wk>div',pg).forEach(function(d,i){d.style.setProperty('--n',i)})}
+
+/* =====================================================================
+   5 · LENTE DE LA BARRA INFERIOR: se estira al moverse
+   ===================================================================== */
+var navEl=q('nav.bar'),lens=navEl&&q('.lens',navEl),lastX=null;
+if(lens&&window.MutationObserver){
+  new MutationObserver(function(){
+    var m=/translateX\((-?[\d.]+)px\)/.exec(lens.style.transform||'');if(!m)return;
+    var x=+m[1];
+    if(lastX!==null&&Math.abs(x-lastX)>3&&mode==='full'&&navEl.classList.contains('ready')&&!navEl.classList.contains('hide')){
+      navEl.style.setProperty('--st',clamp(.1+Math.abs(x-lastX)/Math.max(1,navEl.offsetWidth)*.45,.1,.3).toFixed(3));
+      kick(lens,'a-st2',700)}
+    lastX=x}).observe(lens,{attributes:true,attributeFilter:['style']})}
+
+/* =====================================================================
+   6 · .seg: perilla deslizante con resorte
+   ===================================================================== */
+var segMem={},segRaf=0;
+function segKey(seg){
+  if(seg.id)return seg.id;var p=seg.getAttribute('data-pref');if(p)return 'pref:'+p;
+  if(seg.hasAttribute('data-rir')){var c=seg.closest('[data-ex]');return 'rir:'+(c?c.getAttribute('data-ex'):'')}return null}
+function place(seg,btn,animate){
+  var th=seg._th,b0=seg.querySelector('button');if(!th||!btn||!btn.offsetWidth)return false;
+  var w0=b0.offsetWidth||btn.offsetWidth;
+  if(!animate)th.classList.add('nt');
+  th.style.width=w0+'px';th.style.height=btn.offsetHeight+'px';th.style.top=btn.offsetTop+'px';
+  th.style.translate=btn.offsetLeft+'px 0';th.style.scale=(btn.offsetWidth/w0)+' 1';
+  var c=getComputedStyle(btn).getPropertyValue('--c').trim();if(c)th.style.setProperty('--tc',c);
+  if(!animate){void th.offsetWidth;th.classList.remove('nt')}
+  return true}
+function syncSeg(seg,animate){
+  var btns=qa(':scope>button',seg);if(!btns.length||!seg.offsetWidth)return;
+  var idx=-1;btns.forEach(function(b,i){if(b.classList.contains('on'))idx=i});
+  if(idx<0){if(seg._th)seg._th.style.opacity='0';return}
+  var key=segKey(seg);
+  if(!seg._th||!seg._th.isConnected){
+    var th=document.createElement('i');th.className='a-thumb nt';th.setAttribute('aria-hidden','true');seg.insertBefore(th,seg.firstChild);seg._th=th;seg.classList.add('a-sw');
+    var prev=key!=null?segMem[key]:undefined;
+    if(prev!=null&&prev!==idx&&btns[prev]&&mode==='full'){       // el .seg se reconstruyó (p. ej. RIR): parte de donde estaba
+      place(seg,btns[prev],false);seg._i=prev;
+      raf(function(){place(seg,btns[idx],true);seg._i=idx})}
+    else{place(seg,btns[idx],false);seg._i=idx}}
+  else if(seg._i!==idx){place(seg,btns[idx],animate!==false&&mode==='full');seg._i=idx}
+  else if(animate===false)place(seg,btns[idx],false);            // realinear (resize / página recién visible)
+  seg._th.style.opacity='';
+  if(key!=null)segMem[key]=idx}
+function syncSegs(animate){qa('.pg.on .seg').forEach(function(s){try{syncSeg(s,animate)}catch(e){}})}
+if(window.MutationObserver){
+  new MutationObserver(function(){if(segRaf)return;segRaf=raf(function(){segRaf=0;syncSegs()})})
+    .observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']})}
+
+/* =====================================================================
+   9 · TEMPORIZADOR: el anillo respira corriendo; pulso en los últimos 3 s
+   ===================================================================== */
+var clock=q('#clock'),ctm=q('#ctm'),cpp=q('#cpp'),lastSec=-1;
+function running(){return !!(cpp&&cpp.classList.contains('playing'))}
+function clockState(){if(!clock)return;clock.classList.toggle('a-run',running()&&mode==='full');if(!running()||mode!=='full'){clock.classList.remove('a-pulse');lastSec=-1}}
+function clockTick(){
+  if(!clock||!ctm||mode!=='full'||!running())return;
+  var m=/^(\d+):(\d\d)$/.exec(ctm.textContent.trim());if(!m)return;
+  var s=(+m[1])*60+(+m[2]);if(s===lastSec)return;lastSec=s;
+  if(s>=1&&s<=3)kick(clock,'a-pulse',720)}
+if(window.MutationObserver){
+  if(cpp)new MutationObserver(clockState).observe(cpp,{attributes:true,attributeFilter:['class']});
+  if(ctm)new MutationObserver(clockTick).observe(ctm,{childList:true,characterData:true,subtree:true})}
+
+/* ---------- arranque ---------- */
+applyMode();
+window.addEventListener('hashchange',function(){onRoute(false)});
+onRoute(true);
 })();
 </script></body></html>

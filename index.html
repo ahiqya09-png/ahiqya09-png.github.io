@@ -285,12 +285,12 @@ body::after{opacity:.045}
 /* ---------- fondo vivo «aurora»: 3 manchas lentas, sin blur (transform-only) ---------- */
 .aur{position:fixed;inset:0;z-index:-2;overflow:hidden;pointer-events:none;background:#060912}
 .aur i{position:absolute;width:120vmax;height:120vmax;border-radius:50%;will-change:transform}
-.aur i:nth-child(1){left:-58vmax;top:-60vmax;background:radial-gradient(circle,#3B5BDB 0%,transparent 65%);opacity:.28;animation:o1 38s ease-in-out infinite alternate}
-.aur i:nth-child(2){right:-62vmax;top:2vh;background:radial-gradient(circle,#7C6BE6 0%,transparent 65%);opacity:.22;animation:o2 46s ease-in-out infinite alternate}
-.aur i:nth-child(3){left:-48vmax;bottom:-64vmax;background:radial-gradient(circle,#2BB8A8 0%,transparent 65%);opacity:.24;animation:o3 54s ease-in-out infinite alternate}
-@keyframes o1{to{transform:translate3d(10vw,7vw,0) scale(1.08)}}
-@keyframes o2{to{transform:translate3d(-9vw,9vw,0) scale(.94)}}
-@keyframes o3{to{transform:translate3d(11vw,-7vw,0) scale(1.06)}}
+.aur i:nth-child(1){left:-58vmax;top:-60vmax;background:radial-gradient(circle,#3B5BDB 0%,transparent 65%);opacity:.38;animation:o1 22s ease-in-out infinite alternate}
+.aur i:nth-child(2){right:-62vmax;top:2vh;background:radial-gradient(circle,#7C6BE6 0%,transparent 65%);opacity:.30;animation:o2 29s ease-in-out infinite alternate}
+.aur i:nth-child(3){left:-48vmax;bottom:-64vmax;background:radial-gradient(circle,#2BB8A8 0%,transparent 65%);opacity:.34;animation:o3 37s ease-in-out infinite alternate}
+@keyframes o1{to{transform:translate3d(24vw,18vw,0) scale(1.24)}}
+@keyframes o2{to{transform:translate3d(-22vw,16vw,0) scale(.9)}}
+@keyframes o3{to{transform:translate3d(20vw,-22vw,0) scale(1.15)}}
 @media (prefers-reduced-motion:reduce){.aur i{animation:none}}
 html[data-anim=lite] .aur i{animation:none}          /* modo «Reducidas»: fondo quieto */
 html.paused .aur i{animation-play-state:paused}      /* pestaña no visible: se pausa (lo pone anim.js) */

@@ -1402,7 +1402,7 @@ button.wlview{-webkit-appearance:none;appearance:none;width:100%;margin:0;border
 @keyframes a-cold{from{opacity:0;translate:0 12px}to{opacity:1;translate:0 0}}
 @keyframes a-fi{from{opacity:0}}
 @keyframes a-fo{to{opacity:0}}
-@keyframes a-rise{from{translate:0 10px;scale:.985}to{translate:0 0;scale:1}}
+@keyframes a-rise{from{translate:0 10px}to{translate:0 0}}
 /* listas largas (> 12 filas): un solo fundido con subida de 8 px, sin escalonado */
 @keyframes a-long{from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}}
 
@@ -1410,13 +1410,6 @@ html[data-anim=full] .pg.on.a-pin-fwd{animation:a-pin-f var(--t-page) var(--ease
 html[data-anim=full] .pg.on.a-pin-back{animation:a-pin-b var(--t-page) var(--ease-out) backwards}
 @keyframes a-pin-f{from{translate:12% 0}}
 @keyframes a-pin-b{from{translate:-8% 0}}
-/* la página que sale se queda "congelada" encima y se aparta (salida ~40 % más rápida) */
-.pg.a-leave{display:block;position:fixed;left:0;right:0;top:var(--a-top,0px);margin:0 auto;z-index:2;pointer-events:none;animation:a-fo var(--t-out) linear both}
-.pg.a-leave *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;animation:none!important}   /* la que sale no gasta GPU en desenfoques */
-.pg.a-leave-fwd{animation:a-lv-f calc(var(--t-page) * .6) var(--ease-out) both,a-fo var(--t-out) linear both}
-.pg.a-leave-back{animation:a-lv-b calc(var(--t-page) * .6) var(--ease-out) both,a-fo var(--t-out) linear both}
-@keyframes a-lv-f{to{translate:-8% 0}}
-@keyframes a-lv-b{to{translate:12% 0}}
 html.a-trans{overflow-x:hidden}                          /* el desplazamiento lateral no crea scroll horizontal */
 
 /* reducidas: solo un fundido corto */
@@ -1431,7 +1424,7 @@ html[data-anim=lite] .aur i{animation:none}               /* manchas del fondo q
 .brs i{animation:brasa var(--t,18s) ease-in-out var(--d,0s) infinite alternate}
 @keyframes brasa{from{transform:translate3d(0,6px,0);opacity:calc(var(--o,.7) * .55)}to{transform:translate3d(var(--dx,6px),-18px,0);opacity:var(--o,.7)}}
 @media (prefers-reduced-motion:reduce){.aur i,.brs i{animation:none}}
-html.paused .aur i,html.paused .brs i{animation-play-state:paused}   /* pestaña no visible: se pausa (lo pone anim.js) */
+html.paused .aur i,html.paused .brs i,html.a-busy .aur i,html.a-busy .brs i{animation-play-state:paused}   /* pestaña no visible o cambio de pantalla: se pausa (lo pone anim.js) */
 
 /* =====================================================================
    2 · TÍTULO GRANDE QUE SE ENCOGE (anim.js escribe opacity/scale en el scroll)
@@ -2336,8 +2329,7 @@ function kick(el,cls,ms){if(!el)return;el.classList.remove(cls);void el.offsetWi
    1 + 3 · TRANSICIÓN DE PÁGINAS + ENTRADA ESCALONADA
    ===================================================================== */
 var TABS={hoy:1,perfil:1,exindex:1,registro:1};
-var stack=[],prevId=null,lastY=0,tagged=[],cleanTimer=0,leaveTimer=0;
-function dropLeave(){qa('.pg.a-leave').forEach(function(p){p.classList.remove('a-leave','a-leave-fwd','a-leave-back');p.style.removeProperty('--a-top');p.removeAttribute('aria-hidden')})}
+var stack=[],prevId=null,lastY=0,tagged=[],cleanTimer=0;
 // piezas con backdrop-filter: opacity en un contenedor las "apagaría", así que se anima cada pieza
 var GLASS='.btn,.lvl,.callout,.step,.rir,.feel,.vars,.evita,.stats>div,.tiles>div,.hero2,.logc,.tcard,.setlist,.grp,.dtop,.wk,.seg,.btn2,.chipb,.prow,.rb,.rest,.search,.np,figcaption,.legend span,.cta2,.topbar .back,.topbar span';
 var HEADISH='.topbar *,header,h1,h2,.kick,p,.np,.letter';
@@ -2355,9 +2347,8 @@ function tag(el,cls,i){el.classList.add(cls);if(i!=null)el.style.setProperty('--
 function cleanup(){
   clearTimeout(cleanTimer);
   tagged.forEach(function(el){el.classList.remove('a-in','a-st','a-long','a-out','a-cold','a-glint');el.style.removeProperty('--i')});tagged=[];
-  qa('.pg.a-leave').forEach(function(p){p.classList.remove('a-leave','a-leave-fwd','a-leave-back');p.style.removeProperty('--a-top');p.removeAttribute('aria-hidden')});
   qa('.pg.a-pin-fwd,.pg.a-pin-back,.pg.a-live').forEach(function(p){p.classList.remove('a-pin-fwd','a-pin-back','a-live')});
-  root.classList.remove('a-trans')}
+  root.classList.remove('a-trans','a-busy')}
 
 /* destello de cristal: una sola pasada, sin filter ni backdrop-filter */
 function glint(el,ms){
@@ -2370,12 +2361,7 @@ function glint(el,ms){
 function transition(oldPg,newPg,dir){
   cleanup();
   var vh=window.innerHeight,full=mode==='full';
-  // página que sale (solo en completas y en push/pop/cambio de pestaña)
-  if(full&&oldPg&&oldPg!==newPg&&dir!=='init'){
-    oldPg.style.setProperty('--a-top',(-lastY)+'px');oldPg.setAttribute('aria-hidden','true');
-    oldPg.classList.add('a-leave');if(dir==='fwd'||dir==='back')oldPg.classList.add('a-leave-'+dir);
-    clearTimeout(leaveTimer);leaveTimer=setTimeout(dropLeave,320);
-  }
+  if(full)root.classList.add('a-busy');                   // fondo quieto mientras dura el cambio
   if(full&&(dir==='fwd'||dir==='back')){root.classList.add('a-trans');newPg.classList.add('a-pin-'+dir)}
   // piezas de la página nueva
   var t=[];collect(newPg,t,vh);
@@ -2401,7 +2387,6 @@ function transition(oldPg,newPg,dir){
       if(n<6&&r.top<vh-30&&r.height>0){tag(el,'a-st',n);n++}else fade.push(el)});
     fade.forEach(function(el){if(!el.classList.contains('a-st'))tag(el,'a-in')})}
   newPg.classList.add('a-live');                         // anillos y barras de la página
-  if(full){var main=newPg.querySelector('.hero2,.logc,.tcard,.pdays,.dtop,.dstats>div,.setlist,.grp');if(main)glint(main,760)}
   countUp(newPg);
   cleanTimer=setTimeout(cleanup,900)}
 
